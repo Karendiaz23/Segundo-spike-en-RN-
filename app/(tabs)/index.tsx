@@ -1,98 +1,128 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useState } from 'react';
+import {
+  FlatList, Pressable,
 
-export default function HomeScreen() {
+  StyleSheet, Text,
+  TextInput, View
+} from 'react-native';
+
+type Item = {
+  id: string;
+  name: string;
+  done: boolean;
+};
+
+export default function Index() {
+  const [items, setItems] = useState<Item[]>([]);
+  const [text, setText] = useState('');
+
+  const addItem = () => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setItems((prev) => [
+      ...prev,
+      { id: String(Date.now()), name: trimmed, done: false },
+    ]);
+    setText('');
+  };
+
+  const toggleItem = (id: string) => {
+    setItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, done: !it.done } : it)),
+    );
+  };
+
+  const removeItem = (id: string) => {
+    setItems((prev) => prev.filter((it) => it.id !== id));
+  };
+
+  const renderItem = ({ item }: { item: Item }) => (
+    <Pressable
+      onPress={() => toggleItem(item.id)}
+      onLongPress={() => removeItem(item.id)}
+      style={styles.row}
+    >
+      <Text style={[styles.rowText, item.done && styles.done]}>
+        {item.name}
+      </Text>
+      <Text style={[styles.pill, item.done ? styles.pillDone : styles.pillTodo]}>
+        {item.done ? '✔' : '•'}
+      </Text>
+    </Pressable>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={styles.container}>
+      <Text style={styles.title}>🛒 Lista de Compras</Text>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <View style={styles.inputRow}>
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          placeholder="Agregar producto (ej: Leche)"
+          style={styles.input}
+          returnKeyType="done"
+          onSubmitEditing={addItem}
+        />
+        <Pressable style={styles.addBtn} onPress={addItem}>
+          <Text style={styles.addTxt}>Agregar</Text>
+        </Pressable>
+      </View>
+
+      <FlatList
+        data={items}
+        keyExtractor={(it) => it.id}
+        renderItem={renderItem}
+        ListEmptyComponent={
+          <Text style={styles.empty}>Sin productos. ¡Agregá el primero! 😊</Text>
+        }
+        ItemSeparatorComponent={() => <View style={styles.sep} />}
+        contentContainerStyle={{ paddingBottom: 32 }}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: { flex: 1, padding: 16, gap: 12, backgroundColor: '#fff' },
+  title: { fontSize: 24, fontWeight: 'bold', marginTop: 12 },
+  inputRow: { flexDirection: 'row', gap: 8 },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  addBtn: {
+    backgroundColor: '#1e90ff',
+    paddingHorizontal: 14,
+    borderRadius: 8,
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  addTxt: { color: '#fff', fontWeight: '600' },
+  row: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  rowText: { fontSize: 16 },
+  done: { textDecorationLine: 'line-through', color: '#999' },
+  pill: {
+    minWidth: 28,
+    height: 28,
+    borderRadius: 14,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    fontWeight: '700',
   },
+  pillTodo: { backgroundColor: '#eee', color: '#666' },
+  pillDone: { backgroundColor: '#2ecc71', color: '#fff' },
+  sep: { height: 1, backgroundColor: '#eee' },
+  empty: { textAlign: 'center', color: '#777', marginTop: 24 },
 });
